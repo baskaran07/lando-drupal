@@ -1,0 +1,24 @@
+name: some-drupal-dir-1
+recipe: drupal8
+config:
+  webroot: ./web
+  database: postgres:9.6.14
+##post install
+services:
+  appserver:
+    build:
+      - composer install
+  inkwell-cache:
+    type: redis
+    portforward: true
+    persist: false
+    config:
+      server: config/redis.conf
+events:
+  post-start:
+    - echo "Database import started"
+#    - appserver: /helpers/psql-import.sh
+    - appserver: drush sql-drop -y && drush sqlc < drupal.sql
+    - appserver: drush cim sync -y && drush cr && drush uli
+    - echo "Behat started"
+    - appserver: /app/vendor/bin/behat --init && /app/vendor/bin/behat
